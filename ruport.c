@@ -27,6 +27,7 @@
 #include <linux/ethtool.h>
 #include <linux/if.h>
 #include <sys/ioctl.h>
+#include <errno.h>
 
 // test
 #include <ifaddrs.h>
@@ -800,11 +801,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    // must have a ifindex
-    // if (!ifindex) {
-    //     printf("failed to resolve iface to ifindex\n");
-    //     exit(0);
-    // }
     if (!ifindex) {
         ifindex = get__common_netdev_ifindex();
         if (!ifindex) {
@@ -865,7 +861,6 @@ release_bpf:
     // 清理功能链表
     clearFunctionNode(&g_Header);
     // 
-    printf("-----------------------------------end-------------------------\n");
     fflush(stdout);
 
     return status;
