@@ -19,6 +19,7 @@
 cd ruport
 make
 ```
+如果出现编译问题，可以首先尝试清理所有： `make cleanall`
 
 ## 运行
 
