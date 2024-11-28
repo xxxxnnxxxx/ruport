@@ -2,23 +2,18 @@
 OUTPUT := .output
 CLANG ?= clang
 MUSL-GCC ?= musl-gcc
-
+RM ?= rm
 CMAKE ?= cmake
-LIBSSH_DIR := $(abspath ./libssh)
-LIBSSH_OBJ := $(abspath $(OUTPUT)/libssh.a)
-
+LIBBPF_OBJ := /usr/src/linux-headers-6.8.0-49-generic/tools/bpf/resolve_btfids/libbpf/libbpf.a
+BPFINCLUDE := -I /usr/src/linux-headers-6.8.0-49-generic/tools/bpf/resolve_btfids/libbpf/include
 LLVM_STRIP ?= llvm-strip
-LIBBPF_SRC := $(abspath ./libbpf/src)
-BPFTOOL_SRC := $(abspath ./bpftool/src)
 ARCH := $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
-VMLINUX := ./vmlinux/$(ARCH)/vmlinux.h
-
-INCLUDES := -I$(OUTPUT) -I./libbpf/include/uapi -I$(dir $(VMLINUX)) -I$(LIBSSH_DIR)/build/src/include -I$(LIBSSH_DIR)/include -I$(LIBSSH_DIR)/build/include
-
+VMLINUX_TMP := ./vmlinux
+VMLINUX_DIR := $(VMLINUX_TMP)/$(ARCH)
+VMLINUX_HEADER := $(VMLINUX_DIR)/vmlinux.h
+INCLUDES := -I$(OUTPUT) -I$(dir $(VMLINUX_HEADER))
 CFLAGS := -g -Wall -Wno-implicit-function-declaration -Wno-unused-function -Wno-unused-but-set-variable
-
 APPS = ruport
-
 CLANG_BPF_SYS_INCLUDES = $(shell $(CLANG) -v -E - </dev/null 2>&1 \
 	| sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
 
@@ -37,28 +32,28 @@ endif
 .PHONY: all
 all: $(APPS)
 
-.PHONY: cleanall clearapp
-cleanall:
-	$(call msg,CLEANALL)
-	$(Q)rm -rf $(OUTPUT) $(APPS)
+.PHONY: clean
+clean:
+	$(call msg,clean)
+	$(Q)$(RM) -rf $(OUTPUT) $(APPS)
+	$(Q)$(RM) -rf $(VMLINUX_DIR)
+	$(Q)$(RM) -rf $(VMLINUX_TMP)
 
-cleanapp:
-	$(call msg, CLEANAPP)libbpf
-	$(Q)rm $(OUTPUT)/ruport.o $(APPS)
 
 $(OUTPUT):
 	$(call msg,MKDIR, $@)
 	$(Q)mkdir -p $@
 
-# generate vmlinux.h
-.PHONY: vmlinux_header
-vmlinux_header:
-	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $(VMLINUX)
+$(VMLINUX_DIR):
+	$(Q)mkdir -p $@
+
+$(VMLINUX_HEADER): | $(VMLINUX_DIR)
+	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
 
 # Build BPF code
-$(OUTPUT)/ruport.bpf.o: ruport.bpf.c libbpf.a $(wildcard %.h) $(VMLINUX) | $(OUTPUT)
+$(OUTPUT)/ruport.bpf.o: ruport.bpf.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX_HEADER) | $(OUTPUT)
 	$(call msg,BPF,$@)
-	$(Q)$(CLANG) -g -O2 -Werror -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c ruport.bpf.c -o $@
+	$(Q)$(CLANG) -g -O2 -Werror -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(BPFINCLUDE) $(CLANG_BPF_SYS_INCLUDES) -c ruport.bpf.c -o $@
 	$(Q)$(LLVM_STRIP) -g $@ # strip useless DWARF info
 
 # Generate BPF skeletons
@@ -67,9 +62,9 @@ $(OUTPUT)/ruport.skel.h: $(OUTPUT)/ruport.bpf.o | $(OUTPUT) $(BPFTOOL)
 	bpftool gen skeleton $< > $@
 
 # Build xdp code
-$(OUTPUT)/ruport.xdp.o: ruport.xdp.c libbpf.a $(wildcard %.h) $(VMLINUX)
+$(OUTPUT)/ruport.xdp.o: ruport.xdp.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX_HEADER)
 	$(call msg,XDP,$@)
-	$(Q)$(CLANG) -g -O2 -Werror -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c ruport.xdp.c -o $@
+	$(Q)$(CLANG) -g -O2 -Werror -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(BPFINCLUDE) $(CLANG_BPF_SYS_INCLUDES) -c ruport.xdp.c -o $@
 	$(Q)$(LLVM_STRIP) -g $@ # strip useless DWARF info
 
 # Generate xdp skeletons
@@ -79,9 +74,9 @@ $(OUTPUT)/ruport.xdp.skel.h: $(OUTPUT)/ruport.xdp.o
 
 
 # Build tc code
-$(OUTPUT)/ruport.tc.o: ruport.tc.c libbpf.a $(wildcard %.h) $(VMLINUX)
+$(OUTPUT)/ruport.tc.o: ruport.tc.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX_HEADER)
 	$(call msg,TC,$@)
-	$(Q)$(CLANG) -g -O2 -Werror -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c ruport.tc.c -o $@
+	$(Q)$(CLANG) -g -O2 -Werror -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(BPFINCLUDE) $(CLANG_BPF_SYS_INCLUDES) -c ruport.tc.c -o $@
 	$(Q)$(LLVM_STRIP) -g $@ # strip useless DWARF info
 
 # Generate tc skeletons
@@ -105,22 +100,13 @@ $(OUTPUT)/log.o: log.c $(wildcard %.h) | $(OUTPUT)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c log.c -o $@
 
 
-$(OUTPUT)/ruport.o: utils.o $(wildcard %.h) | $(OUTPUT)
+$(OUTPUT)/ruport.o: $(OUTPUT)/utils.o $(wildcard %.h) | $(OUTPUT)
 	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c ruport.c  -o $@
-
-# Build Libssh 
-$(LIBSSH_DIR)/build/src/libssh.a: | $(LIBSSH_DIR)/build
-	$(call msg generate Makefile)
-	$(CMAKE) -S $(LIBSSH_DIR) -B $(LIBSSH_DIR)/build -DWITH_EXAMPLES=OFF -DBUILD_SHARED_LIBS=OFF -DWITH_STATIC_LIB=ON
-	$(MAKE) -C $(LIBSSH_DIR)/build
+	$(Q)$(CC) $(CFLAGS) $(INCLUDES) $(BPFINCLUDE) -c ruport.c  -o $@
 
 # Build application binary
-$(APPS): %: $(OUTPUT)/utils.o  $(OUTPUT)/template.o $(OUTPUT)/log.o $(OUTPUT)/ruport.o $(LIBBPF_OBJ) | $(OUTPUT)
+$(APPS): %: $(vmlinux_header) $(OUTPUT)/utils.o  $(OUTPUT)/template.o $(OUTPUT)/log.o $(OUTPUT)/ruport.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
-	@echo "App----------------------------"
-	@echo $^
-	@echo "App----------------------------"
 	$(Q)$(CLANG) $(CFLAGS) $^ -lelf -lz  -lpthread -o $@   
 
 # delete failed targets
