@@ -211,6 +211,10 @@ def wrapInsInfo(insinfo):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        usage()
+        sys.exit(0)
+        
     argv = sys.argv[1:]
     insinfo = {
         "ins":0,
@@ -222,8 +226,8 @@ if __name__ == '__main__':
         "ext": "",      # 扩展数据
     }
 
-    target = "";
-    target_port = 0;
+    target = ""
+    target_port = 0
 
     try:
         opts, args = getopt.getopt(argv, "ht:p:di:1234S:P:x:y:e:")  
