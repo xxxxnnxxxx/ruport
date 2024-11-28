@@ -4,22 +4,38 @@
 
 ## 环境和编译：
 
-目前在ubuntu20.04 和 ubuntu22.04 下编译通过
+去掉原有的bpftool/libbpf的源码部分，通过安装 linux-tools-common & libbpf-dev,
+
+```bash
+sudo apt install linux-tools-common # bpftool
+sudo apt install libbpf-dev # bpf headers and library
+sudo apt install clang # clang 
+```
 
 ### 环境
 
-    OS: ubuntu
-    Linux Kernel：5.13 
-    clang：13.0.1 or latest
-    glibc: 2.35
+```bash
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+VERSION="24.04.1 LTS (Noble Numbat)"
+VERSION_CODENAME=noble
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://www.ubuntu.com/"
+SUPPORT_URL="https://help.ubuntu.com/"
+BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
+PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
+UBUNTU_CODENAME=noble
+LOGO=ubuntu-logo
+```
 
 ### 编译
 
 ```bash
-cd ruport
+make clean
 make
 ```
-如果出现编译问题，可以首先尝试清理所有： `make cleanall`
 
 ## 运行
 
