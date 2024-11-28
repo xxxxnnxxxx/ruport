@@ -91,10 +91,6 @@ $(OUTPUT)/utils.o: utils.c $(wildcard %.h) | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c utils.c -o $@
 
-$(OUTPUT)/template.o: template.c $(wildcard %.h) | $(OUTPUT)
-	$(call msg,CC,$@)
-	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c template.c -o $@
-
 $(OUTPUT)/log.o: log.c $(wildcard %.h) | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c log.c -o $@
@@ -105,7 +101,7 @@ $(OUTPUT)/ruport.o: $(OUTPUT)/utils.o $(wildcard %.h) | $(OUTPUT)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) $(BPFINCLUDE) -c ruport.c  -o $@
 
 # Build application binary
-$(APPS): %: $(vmlinux_header) $(OUTPUT)/utils.o  $(OUTPUT)/template.o $(OUTPUT)/log.o $(OUTPUT)/ruport.o $(LIBBPF_OBJ) | $(OUTPUT)
+$(APPS): %: $(vmlinux_header) $(OUTPUT)/utils.o $(OUTPUT)/log.o $(OUTPUT)/ruport.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CLANG) $(CFLAGS) $^ -lelf -lz  -lpthread -o $@   
 
