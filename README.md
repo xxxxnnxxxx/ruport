@@ -4,15 +4,22 @@
 
 ## 环境和编译：
 
-去掉原有的bpftool/libbpf的源码部分，通过安装 linux-tools-common & libbpf-dev,
+### 1. linux-tools-common & libbpf-dev
+
+去掉原有的bpftool/libbpf的源码部分，通过安装这两个安装包
 
 ```bash
 sudo apt install linux-tools-common # bpftool
 sudo apt install libbpf-dev # bpf headers and library
+```
+
+### 2. 安装clang
+
+```bash
 sudo apt install clang # clang 
 ```
 
-### 环境
+### 3. 测试代码当前环境
 
 ```bash
 PRETTY_NAME="Ubuntu 24.04.1 LTS"
@@ -30,7 +37,7 @@ UBUNTU_CODENAME=noble
 LOGO=ubuntu-logo
 ```
 
-### 编译
+### 4. 编译
 
 ```bash
 make clean
