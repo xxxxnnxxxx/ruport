@@ -39,8 +39,8 @@ def generate_weakup_packet(srvport, ccip, ccport) :
     s2 = random.randrange(1, 65535, 2)
     s3 = math.pow(s1,2) + math.pow(s2,2)
 
-    ins = 1;
-    bytes_ins = ins.to_bytes(1, byteorder='little');
+    ins = 1
+    bytes_ins = ins.to_bytes(1, byteorder='little')
 
     return bytearray(list(s1.to_bytes(2, byteorder='little'))) + bytearray(list(s2.to_bytes(2, byteorder='little'))) + \
         bytearray(list(int(s3).to_bytes(8, byteorder='little'))) + bytearray(list(bytes_ins)) + bytearray(list(nsrvport)) + \
