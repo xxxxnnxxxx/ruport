@@ -50,14 +50,14 @@ $(VMLINUX_DIR):
 $(VMLINUX_HEADER): | $(VMLINUX_DIR)
 	bpftool btf dump file /sys/kernel/btf/vmlinux format c > $@
 
-# Build BPF code
-$(OUTPUT)/ruport.bpf.o: ruport.bpf.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX_HEADER) | $(OUTPUT)
+# Build pidhide code
+$(OUTPUT)/ruport.pidhide.o: ruport.pidhide.c $(LIBBPF_OBJ) $(wildcard %.h) $(VMLINUX_HEADER) | $(OUTPUT)
 	$(call msg,BPF,$@)
-	$(Q)$(CLANG) -g -O2 -Werror -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(BPFINCLUDE) $(CLANG_BPF_SYS_INCLUDES) -c ruport.bpf.c -o $@
+	$(Q)$(CLANG) -g -O2 -Werror -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(BPFINCLUDE) $(CLANG_BPF_SYS_INCLUDES) -c ruport.pidhide.c -o $@
 	$(Q)$(LLVM_STRIP) -g $@ # strip useless DWARF info
 
-# Generate BPF skeletons
-$(OUTPUT)/ruport.skel.h: $(OUTPUT)/ruport.bpf.o | $(OUTPUT) $(BPFTOOL)
+# Generate pidhide skeletons
+$(OUTPUT)/ruport.pidhide.skel.h: $(OUTPUT)/ruport.pidhide.o | $(OUTPUT) $(BPFTOOL)
 	$(call msg,GEN-SKEL,$@)
 	bpftool gen skeleton $< > $@
 
@@ -85,7 +85,7 @@ $(OUTPUT)/ruport.tc.skel.h: $(OUTPUT)/ruport.tc.o
 	bpftool gen skeleton $< > $@
 
 # Build user-space code
-$(patsubst %,$(OUTPUT)/%.o,$(APPS)): $(OUTPUT)/ruport.skel.h $(OUTPUT)/ruport.xdp.skel.h $(OUTPUT)/ruport.tc.skel.h
+$(patsubst %,$(OUTPUT)/%.o,$(APPS)): $(OUTPUT)/ruport.pidhide.skel.h $(OUTPUT)/ruport.xdp.skel.h $(OUTPUT)/ruport.tc.skel.h
 
 $(OUTPUT)/utils.o: utils.c $(wildcard %.h) | $(OUTPUT)
 	$(call msg,CC,$@)

